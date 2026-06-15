@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Lazy Scroll Test Feed</title>
+    <style>
+      html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+      main { height: 300vh; background: linear-gradient(#111827, #155e75, #f97316); color: white; }
+      .reel { height: 100vh; display: grid; place-items: center; font-size: 44px; }
+      .comments-button { position: fixed; right: 24px; top: 120px; z-index: 2; }
+      .test-video {
+        position: fixed;
+        left: 24px;
+        bottom: 24px;
+        width: 320px;
+        height: 180px;
+        z-index: 2;
+        background: #030712;
+      }
+      .comments {
+        position: fixed;
+        right: 0;
+        top: 0;
+        width: 360px;
+        max-width: 85vw;
+        height: 100vh;
+        overflow-y: auto;
+        background: white;
+        color: #111827;
+        transform: translateX(100%);
+        transition: transform .15s ease;
+        z-index: 3;
+      }
+      .comments[data-open="true"] { transform: translateX(0); }
+      .comment { min-height: 110px; border-bottom: 1px solid #e5e7eb; padding: 16px; }
+      .close { position: sticky; top: 8px; float: right; }
+    </style>
+  </head>
+  <body>
+    <button class="comments-button" aria-label="Comments">Comments</button>
+    <video class="test-video" muted playsinline></video>
+    <aside class="comments" aria-label="Comments" data-lazy-scroll-comments>
+      <button class="close" aria-label="Close">Close</button>
+      <div class="comment">Comment 1</div><div class="comment">Comment 2</div><div class="comment">Comment 3</div>
+      <div class="comment">Comment 4</div><div class="comment">Comment 5</div><div class="comment">Comment 6</div>
+      <div class="comment">Comment 7</div><div class="comment">Comment 8</div><div class="comment">Comment 9</div>
+    </aside>
+    <main>
+      <section class="reel">Reel 1</section>
+      <section class="reel">Reel 2</section>
+      <section class="reel">Reel 3</section>
+    </main>
+    <script type="module">
+      import { mountLazyScroll } from "../src/app.js";
+
+      const comments = document.querySelector(".comments");
+      const video = document.querySelector(".test-video");
+      let currentTime = 20;
+      Object.defineProperties(video, {
+        currentTime: {
+          get: () => currentTime,
+          set: (value) => { currentTime = value; }
+        },
+        duration: {
+          get: () => 60
+        }
+      });
+      document.querySelector(".comments-button").addEventListener("click", () => {
+        comments.dataset.open = "true";
+      });
+      document.querySelector(".close").addEventListener("click", () => {
+        comments.dataset.open = "false";
+      });
+
+      class FakeProvider {
+        async start(onLandmarks, onStatus) {
+          onStatus("Test mode");
+          window.__pushLazyScrollLandmarks = onLandmarks;
+        }
+        stop() {}
+      }
+
+      await mountLazyScroll({
+        runtimeUrl: (path) => `../${path}`,
+        provider: new FakeProvider()
+      });
+    </script>
+  </body>
+</html>

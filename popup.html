@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Lazy Scroll</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Lazy Scroll</h1>
+        <p>Choose the pages where hand gestures should run.</p>
+      </header>
+
+      <label for="sites">Allowed site URLs</label>
+      <textarea id="sites" spellcheck="false" rows="8"></textarea>
+
+      <div class="actions">
+        <button id="save" type="button">Save</button>
+        <button id="reset" type="button">Reset</button>
+      </div>
+
+      <p id="status" role="status"></p>
+    </main>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>
