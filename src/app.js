@@ -81,6 +81,11 @@ export async function mountLazyScroll({ runtimeUrl, provider } = {}) {
     stop: () => {
       stopTrackingStatusTimer();
       handProvider.stop();
+      recognizer.reset();
+      lastLandmarksAt = 0;
+      overlay.setBusy(false);
+      overlay.setStarted(false);
+      overlay.setStatus("Paused. Click Start.", "idle");
     },
     emit: (action) => adapter.handle(action),
     destroy: () => {
@@ -93,7 +98,13 @@ export async function mountLazyScroll({ runtimeUrl, provider } = {}) {
     }
   };
 
-  overlay.onStart(app.start);
+  overlay.onStart(() => {
+    if (handProvider.running) {
+      app.stop();
+      return;
+    }
+    app.start();
+  });
   window.__lazyScrollMounted = true;
   window.__lazyScrollApp = app;
   window.__lazyScrollDebug = {

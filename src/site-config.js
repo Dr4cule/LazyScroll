@@ -43,6 +43,37 @@ export function isUrlAllowed(url, sites) {
   return normalizeSites(sites).some((site) => matchesSite(current, site));
 }
 
+export function suggestAllowedSite(url) {
+  let current;
+  try {
+    current = new URL(url);
+  } catch {
+    return "";
+  }
+
+  if (!["http:", "https:"].includes(current.protocol)) {
+    return "";
+  }
+
+  const host = current.hostname.replace(/^www\./i, "").toLowerCase();
+  const firstPathPart = current.pathname.split("/").filter(Boolean)[0] || "";
+  if (host === "youtube.com" || host === "m.youtube.com") {
+    return firstPathPart === "shorts" ? `${current.origin}/shorts` : current.origin;
+  }
+  if (host === "instagram.com") {
+    if (firstPathPart === "reel" || firstPathPart === "reels") {
+      return `${current.origin}/${firstPathPart}`;
+    }
+    return current.origin;
+  }
+  if (host === "tiktok.com") {
+    return current.origin;
+  }
+
+  const path = current.pathname.replace(/\/+$/, "");
+  return `${current.origin}${path}`;
+}
+
 function matchesSite(current, site) {
   if (site.includes("*")) {
     return wildcardToRegExp(site).test(current.href);

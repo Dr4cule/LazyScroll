@@ -54,7 +54,6 @@ export class LazyScrollOverlay {
         font: 600 12px/1 system-ui, -apple-system, Segoe UI, sans-serif;
         cursor: pointer;
       }
-      #lazy-scroll-overlay[data-started="true"] .lazy-scroll-start { display: none; }
     `;
     doc.documentElement.append(this.style, this.root);
     this.status = this.root.querySelector(".lazy-scroll-status");
@@ -72,11 +71,14 @@ export class LazyScrollOverlay {
 
   setStarted(started) {
     this.root.dataset.started = String(started);
+    this.startButton.textContent = started ? "Stop" : "Start";
   }
 
   setBusy(busy) {
     this.startButton.disabled = busy;
-    this.startButton.textContent = busy ? "Starting" : "Start";
+    this.startButton.textContent = busy
+      ? "Starting"
+      : this.root.dataset.started === "true" ? "Stop" : "Start";
   }
 
   destroy() {

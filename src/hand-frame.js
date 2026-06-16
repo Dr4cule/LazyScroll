@@ -10,17 +10,38 @@ let cpuRetryStarted = false;
 let activeHandedness = null;
 let activeHandCenter = null;
 let activeHandLastSeenAt = 0;
-
-start().catch((error) => {
-  cleanup();
-  post("error", normalizeStartMessage(error));
-});
+let controlPort = null;
+let startPromise = null;
+const controllerWindow = window.opener || parent;
 
 window.addEventListener("message", (event) => {
+  if (
+    event.source !== controllerWindow ||
+    event.data?.source !== "lazy-scroll" ||
+    event.data.type !== "connect" ||
+    !event.ports?.[0]
+  ) {
+    return;
+  }
+
+  controlPort = event.ports[0];
+  controlPort.onmessage = handleControlMessage;
+  controlPort.start?.();
+  startPromise ||= start().catch((error) => {
+    cleanup();
+    post("error", normalizeStartMessage(error));
+  });
+});
+
+postToController("frameReady");
+
+function handleControlMessage(event) {
   if (event.data?.source === "lazy-scroll" && event.data.type === "stop") {
     cleanup();
+    controlPort?.close?.();
+    controlPort = null;
   }
-});
+}
 
 async function start() {
   if (!navigator.mediaDevices?.getUserMedia) {
@@ -282,8 +303,11 @@ function cleanup() {
 }
 
 function post(type, payload) {
-  const target = window.opener || parent;
-  target?.postMessage({ source: "lazy-scroll-hand-frame", type, payload }, "*");
+  controlPort?.postMessage({ source: "lazy-scroll-hand-frame", type, payload });
+}
+
+function postToController(type, payload) {
+  controllerWindow?.postMessage({ source: "lazy-scroll-hand-frame", type, payload }, "*");
 }
 
 function normalizeStartMessage(error) {

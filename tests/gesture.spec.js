@@ -115,6 +115,15 @@ test("recognizes a held pinky as like toggle", () => {
   expect(recognizer.analyze(pinkyHand(), 1500)).toBeNull();
 });
 
+test("reset clears held pinky state", () => {
+  const recognizer = new GestureRecognizer({ cooldownMs: 200 });
+
+  expect(recognizer.analyze(pinkyHand(), 1000)).toBeNull();
+  recognizer.reset();
+  expect(recognizer.analyze(pinkyHand(), 1280)).toBeNull();
+  expect(recognizer.analyze(pinkyHand(), 1540)).toBe(GestureAction.TOGGLE_LIKE);
+});
+
 test("does not scroll while opening or closing the hand", () => {
   const recognizer = new GestureRecognizer({ cooldownMs: 200, openHoldMs: 1000 });
 

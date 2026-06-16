@@ -33,4 +33,8 @@ test("controls feed and comments on the local integration page", async ({ page }
 
   await page.evaluate(() => window.__lazyScrollDebug.emit("closeComments"));
   await expect(page.locator(".comments")).toHaveAttribute("data-open", "false");
+
+  await page.locator(".lazy-scroll-start").click();
+  await expect(page.locator("#lazy-scroll-overlay")).toContainText("Paused. Click Start.");
+  await expect(page.locator(".lazy-scroll-start")).toHaveText("Start");
 });

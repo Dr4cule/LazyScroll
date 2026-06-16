@@ -91,11 +91,17 @@
       });
 
       class FakeProvider {
+        running = false;
+
         async start(onLandmarks, onStatus) {
+          this.running = true;
           onStatus("Test mode");
           window.__pushLazyScrollLandmarks = onLandmarks;
         }
-        stop() {}
+
+        stop() {
+          this.running = false;
+        }
       }
 
       await mountLazyScroll({

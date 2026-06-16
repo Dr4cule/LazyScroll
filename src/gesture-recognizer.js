@@ -53,6 +53,8 @@ export class GestureRecognizer {
     this.lastPoint = null;
     this.openSince = 0;
     this.closedSince = 0;
+    this.pinkySince = 0;
+    this.pinkyEmitted = false;
     this.openEmitted = false;
     this.wasOpen = false;
   }

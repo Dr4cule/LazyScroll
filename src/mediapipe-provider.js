@@ -7,7 +7,10 @@ export class MediaPipeHandProvider {
     this.onLandmarks = null;
     this.onStatus = null;
     this.startTimeout = null;
-    this.handleMessage = this.handleMessage.bind(this);
+    this.trackerPort = null;
+    this.trackerOrigin = new URL(runtimeUrl("")).origin;
+    this.handleWindowMessage = this.handleWindowMessage.bind(this);
+    this.handlePortMessage = this.handlePortMessage.bind(this);
   }
 
   async start(onLandmarks, onStatus) {
@@ -18,6 +21,7 @@ export class MediaPipeHandProvider {
     this.onLandmarks = onLandmarks;
     this.onStatus = onStatus;
     this.onStatus?.("Opening tracker");
+    window.addEventListener("message", this.handleWindowMessage);
 
     if (shouldUsePopupTracker(window.location.hostname)) {
       this.onStatus?.("Opening extension camera window");
@@ -27,6 +31,7 @@ export class MediaPipeHandProvider {
         "popup=yes,width=320,height=180,left=40,top=40"
       );
       if (!this.trackerWindow) {
+        window.removeEventListener("message", this.handleWindowMessage);
         throw userFacingError("Camera window was blocked. Allow popups for this page and try again.");
       }
     } else {
@@ -37,8 +42,6 @@ export class MediaPipeHandProvider {
       this.frame.style.cssText = "position:fixed;left:0;top:0;width:2px;height:2px;border:0;opacity:.01;pointer-events:none;z-index:-1;";
       document.documentElement.append(this.frame);
     }
-
-    window.addEventListener("message", this.handleMessage);
 
     this.startTimeout = window.setTimeout(() => {
       const error = userFacingError("Hand tracker did not respond");
@@ -56,20 +59,35 @@ export class MediaPipeHandProvider {
   stop() {
     this.running = false;
     window.clearTimeout(this.startTimeout);
-    window.removeEventListener("message", this.handleMessage);
-    this.getTrackerWindow()?.postMessage({ source: "lazy-scroll", type: "stop" }, "*");
+    window.removeEventListener("message", this.handleWindowMessage);
+    this.trackerPort?.postMessage({ source: "lazy-scroll", type: "stop" });
+    this.trackerPort?.close?.();
     this.frame?.remove();
     this.trackerWindow?.close();
     this.frame = null;
     this.trackerWindow = null;
+    this.trackerPort = null;
     this.onLandmarks = null;
     this.onStatus = null;
     this.pendingResolve = null;
     this.pendingReject = null;
   }
 
-  handleMessage(event) {
-    if (event.source !== this.getTrackerWindow() || event.data?.source !== "lazy-scroll-hand-frame") {
+  handleWindowMessage(event) {
+    if (
+      event.source !== this.getTrackerWindow() ||
+      event.origin !== this.trackerOrigin ||
+      event.data?.source !== "lazy-scroll-hand-frame" ||
+      event.data.type !== "frameReady"
+    ) {
+      return;
+    }
+
+    this.connectTracker();
+  }
+
+  handlePortMessage(event) {
+    if (event.data?.source !== "lazy-scroll-hand-frame") {
       return;
     }
 
@@ -100,6 +118,22 @@ export class MediaPipeHandProvider {
       this.stop();
       reject?.(error);
     }
+  }
+
+  connectTracker() {
+    if (this.trackerPort) {
+      return;
+    }
+
+    const channel = new MessageChannel();
+    this.trackerPort = channel.port1;
+    this.trackerPort.onmessage = this.handlePortMessage;
+    this.trackerPort.start?.();
+    this.getTrackerWindow()?.postMessage(
+      { source: "lazy-scroll", type: "connect" },
+      this.trackerOrigin,
+      [channel.port2]
+    );
   }
 
   getTrackerWindow() {

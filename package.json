@@ -6,9 +6,18 @@
   "scripts": {
     "test": "playwright test",
     "test:unit": "playwright test tests/gesture.spec.js",
-    "test:e2e": "playwright test tests/e2e.spec.js"
+    "test:e2e": "playwright test tests/e2e.spec.js",
+    "test:extension": "playwright test tests/extension-*.spec.js",
+    "audit": "npm audit"
   },
-  "keywords": [],
+  "keywords": [
+    "chrome-extension",
+    "gesture-control",
+    "mediapipe",
+    "youtube-shorts",
+    "instagram-reels",
+    "tiktok"
+  ],
   "author": "",
   "license": "ISC",
   "type": "module",
