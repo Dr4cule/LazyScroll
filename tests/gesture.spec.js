@@ -106,6 +106,15 @@ test("recognizes open palm and closing palm comment gestures", () => {
   expect(recognizer.analyze(closedHand(0.56), 1980)).toBe(GestureAction.CLOSE_COMMENTS);
 });
 
+test("recognizes a held pinky as like toggle", () => {
+  const recognizer = new GestureRecognizer({ cooldownMs: 200 });
+
+  expect(recognizer.analyze(pinkyHand(), 1000)).toBeNull();
+  expect(recognizer.analyze(pinkyHand(), 1120)).toBeNull();
+  expect(recognizer.analyze(pinkyHand(), 1280)).toBe(GestureAction.TOGGLE_LIKE);
+  expect(recognizer.analyze(pinkyHand(), 1500)).toBeNull();
+});
+
 test("does not scroll while opening or closing the hand", () => {
   const recognizer = new GestureRecognizer({ cooldownMs: 200, openHoldMs: 1000 });
 
@@ -218,6 +227,18 @@ function twoFingerHand(direction, centerY = 0.55, centerX = 0.5) {
   landmarks[16].y = centerY + 0.08;
   landmarks[18].y = centerY + 0.07;
   landmarks[20].y = centerY + 0.09;
+  return landmarks;
+}
+
+function pinkyHand(centerY = 0.55, centerX = 0.5) {
+  const landmarks = pointingHand(centerY, centerX);
+  landmarks[8].y = centerY + 0.08;
+  landmarks[12].y = centerY + 0.08;
+  landmarks[16].y = centerY + 0.08;
+  landmarks[20].y = centerY - 0.16;
+  landmarks[18].y = centerY - 0.06;
+  landmarks[4].x = centerX - 0.01;
+  landmarks[9].x = centerX;
   return landmarks;
 }
 

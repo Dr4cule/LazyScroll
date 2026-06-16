@@ -3,6 +3,7 @@ export const GestureAction = Object.freeze({
   SWIPE_DOWN: "swipeDown",
   OPEN_COMMENTS: "openComments",
   CLOSE_COMMENTS: "closeComments",
+  TOGGLE_LIKE: "toggleLike",
   SEEK_FORWARD: "seekForward",
   SEEK_BACKWARD: "seekBackward"
 });
@@ -33,6 +34,8 @@ export class GestureRecognizer {
     this.lastPoint = null;
     this.openSince = 0;
     this.closedSince = 0;
+    this.pinkySince = 0;
+    this.pinkyEmitted = false;
     this.openEmitted = false;
     this.wasOpen = false;
   }
@@ -60,6 +63,8 @@ export class GestureRecognizer {
       this.pinchSamples = [];
       this.openSince = 0;
       this.closedSince = 0;
+      this.pinkySince = 0;
+      this.pinkyEmitted = false;
       this.lastPoint = null;
       this.swipeDisarmed = false;
       this.lastSwipeDirection = 0;
@@ -87,7 +92,19 @@ export class GestureRecognizer {
       this.twoFingerDirection = 0;
     }
 
-    if (state.canSwipe && !twoFingerDirection) {
+    if (state.pinkyOnly) {
+      this.samples = [];
+      this.lastPoint = null;
+      this.swipeDisarmed = false;
+      this.lastSwipeDirection = 0;
+      this.restSince = 0;
+      this.pinkySince ||= timestamp;
+    } else {
+      this.pinkySince = 0;
+      this.pinkyEmitted = false;
+    }
+
+    if (state.canSwipe && !twoFingerDirection && !state.pinkyOnly) {
       this.updateSwipeArmState(point, timestamp);
       this.samples.push({ x: point.x, y: point.y, timestamp });
       this.samples = this.samples.filter((sample) => timestamp - sample.timestamp <= this.swipeWindowMs);
@@ -124,6 +141,14 @@ export class GestureRecognizer {
 
     if (timestamp - this.lastActionAt < this.cooldownMs) {
       return null;
+    }
+
+    const like = this.detectLikeToggle(timestamp);
+    if (like) {
+      this.lastActionAt = timestamp;
+      this.samples = [];
+      this.pinchSamples = [];
+      return like;
     }
 
     const continuousScroll = this.detectContinuousTwoFingerScroll(timestamp);
@@ -217,6 +242,17 @@ export class GestureRecognizer {
     }
 
     return this.twoFingerDirection < 0 ? GestureAction.SWIPE_UP : GestureAction.SWIPE_DOWN;
+  }
+
+  detectLikeToggle(timestamp) {
+    if (!this.pinkySince || this.pinkyEmitted || timestamp - this.pinkySince < 260) {
+      return null;
+    }
+
+    this.pinkyEmitted = true;
+    this.openSince = 0;
+    this.openEmitted = false;
+    return GestureAction.TOGGLE_LIKE;
   }
 
   updateSwipeArmState(point, timestamp) {
@@ -313,6 +349,7 @@ export function getHandState(landmarks) {
   const foldedRingAndPinky = foldedFingers >= 2 && !ringExtended && !pinkyExtended;
   const twoFingerUp = twoFingerUpPose && twoFingerTipY < twoFingerBaseY - palmWidth * 0.2;
   const twoFingerDown = foldedRingAndPinky && twoFingerTipY > twoFingerBaseY + palmWidth * 0.2;
+  const pinkyOnly = pinkyExtended && !indexExtended && !middleExtended && !ringExtended;
 
   return {
     extended,
@@ -321,6 +358,7 @@ export function getHandState(landmarks) {
     isOpen: openScore >= 4,
     isClosed: extended <= 1 && foldedFingers >= 3 && thumbSpread < palmWidth * 1.15,
     canSwipe: indexExtended && !middleExtended && !ringExtended && !pinkyExtended && thumbIndexDistance >= palmWidth * 0.48,
+    pinkyOnly,
     twoFingerUp,
     twoFingerDown
   };

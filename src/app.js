@@ -115,6 +115,7 @@ function actionLabel(action) {
     swipeDown: "Previous",
     openComments: "Open comments",
     closeComments: "Close comments",
+    toggleLike: "Like",
     seekForward: "Forward",
     seekBackward: "Back"
   }[action] || "Watching gestures";

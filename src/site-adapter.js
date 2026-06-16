@@ -29,6 +29,39 @@ const COMMENT_CLOSE_SELECTORS = [
   "[role='button'][aria-label='Close']"
 ];
 
+const LIKE_SELECTORS = {
+  instagram: [
+    "svg[aria-label='Like']",
+    "svg[aria-label='Unlike']",
+    "button[aria-label='Like']",
+    "button[aria-label='Unlike']",
+    "[role='button'][aria-label='Like']",
+    "[role='button'][aria-label='Unlike']"
+  ],
+  youtube: [
+    "button[aria-label*='like this video' i]",
+    "button[aria-label*='unlike' i]",
+    "button[title='Like']",
+    "button[title='Unlike']",
+    "like-button-view-model button"
+  ],
+  tiktok: [
+    "[data-e2e='like-icon']",
+    "button[aria-label*='like' i]",
+    "[role='button'][aria-label*='like' i]"
+  ],
+  generic: [
+    "button[aria-label='Like']",
+    "button[aria-label='Unlike']",
+    "button[aria-label*='like' i]",
+    "button[title='Like']",
+    "button[title='Unlike']",
+    "[role='button'][aria-label='Like']",
+    "[role='button'][aria-label='Unlike']",
+    "[role='button'][aria-label*='like' i]"
+  ]
+};
+
 const COMMENT_PANEL_SELECTORS = [
   "[data-lazy-scroll-comments]",
   "[role='dialog']",
@@ -62,6 +95,9 @@ export class SiteAdapter {
     if (action === GestureAction.CLOSE_COMMENTS) {
       return this.closeComments();
     }
+    if (action === GestureAction.TOGGLE_LIKE) {
+      return this.toggleLike();
+    }
     if (action === GestureAction.SWIPE_UP) {
       return this.scrollCommentsOrFeed(1);
     }
@@ -78,9 +114,13 @@ export class SiteAdapter {
   }
 
   scrollCommentsOrFeed(direction) {
-    const panel = this.findScrollableCommentsPanel();
+    const panel = this.findCommentsPanel();
     if (panel) {
-      panel.scrollBy({ top: direction * Math.max(280, panel.clientHeight * 0.82), behavior: "smooth" });
+      const scrollTarget = findScrollableSurface(panel, direction) || panel;
+      const deltaY = direction * Math.max(280, scrollTarget.clientHeight * 0.82 || 420);
+      if (typeof scrollTarget.scrollBy === "function") {
+        scrollTarget.scrollBy({ top: deltaY, behavior: "auto" });
+      }
       return true;
     }
     return this.scrollFeed(direction);
@@ -111,9 +151,9 @@ export class SiteAdapter {
       target.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: pageKey, code: pageKey }));
     }
 
-    this.document.scrollingElement?.scrollBy({ top: deltaY, behavior: "smooth" });
-    this.document.documentElement.scrollBy({ top: deltaY, behavior: "smooth" });
-    this.findScrollableFeedContainer(direction)?.scrollBy({ top: deltaY, behavior: "smooth" });
+    this.document.scrollingElement?.scrollBy({ top: deltaY, behavior: "auto" });
+    this.document.documentElement.scrollBy({ top: deltaY, behavior: "auto" });
+    this.findScrollableFeedContainer(direction)?.scrollBy({ top: deltaY, behavior: "auto" });
     return true;
   }
 
@@ -128,12 +168,28 @@ export class SiteAdapter {
   }
 
   closeComments() {
+    const panel = this.findCommentsPanel();
+    const panelTarget = panel ? findFirstElement(panel, COMMENT_CLOSE_SELECTORS) : null;
+    if (panelTarget) {
+      (panelTarget.closest("button,[role='button'],a") || panelTarget).click();
+      return true;
+    }
+
     const target = findFirstClickable(this.document, COMMENT_CLOSE_SELECTORS);
     if (target) {
       target.click();
       return true;
     }
     this.document.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "Escape", code: "Escape" }));
+    return true;
+  }
+
+  toggleLike() {
+    const target = findFirstClickable(this.document, this.getLikeSelectors());
+    if (!target) {
+      return false;
+    }
+    target.click();
     return true;
   }
 
@@ -161,20 +217,19 @@ export class SiteAdapter {
     return videos.sort((a, b) => visibleArea(b) - visibleArea(a))[0] || null;
   }
 
-  findScrollableCommentsPanel() {
+  findCommentsPanel() {
     for (const selector of COMMENT_PANEL_SELECTORS) {
       const candidates = Array.from(this.document.querySelectorAll(selector));
-      const panel = candidates.find((element) => isScrollable(element) && isActivePanel(element));
+      const panel = candidates.find((element) => isActivePanel(element) && hasCommentSignal(element, true));
       if (panel) {
         return panel;
       }
     }
     return Array.from(this.document.querySelectorAll("*")).find((element) => {
-      if (!isScrollable(element) || !isActivePanel(element)) {
+      if (!isActivePanel(element) || !isPotentialPanelElement(element)) {
         return false;
       }
-      const label = `${element.getAttribute("aria-label") || ""} ${element.className || ""}`.toLowerCase();
-      return label.includes("comment");
+      return hasCommentSignal(element);
     }) || null;
   }
 
@@ -189,6 +244,19 @@ export class SiteAdapter {
       return [...COMMENT_OPEN_SELECTORS.tiktok, ...COMMENT_OPEN_SELECTORS.generic];
     }
     return COMMENT_OPEN_SELECTORS.generic;
+  }
+
+  getLikeSelectors() {
+    if (this.host.includes("instagram")) {
+      return [...LIKE_SELECTORS.instagram, ...LIKE_SELECTORS.generic];
+    }
+    if (this.host.includes("youtube")) {
+      return [...LIKE_SELECTORS.youtube, ...LIKE_SELECTORS.generic];
+    }
+    if (this.host.includes("tiktok")) {
+      return [...LIKE_SELECTORS.tiktok, ...LIKE_SELECTORS.generic];
+    }
+    return LIKE_SELECTORS.generic;
   }
 
   findNativeFeedControl(direction) {
@@ -247,6 +315,32 @@ function findFirstClickable(doc, selectors) {
   return null;
 }
 
+function findFirstElement(root, selectors) {
+  for (const selector of selectors) {
+    const element = root.querySelector(selector);
+    if (element) {
+      return element;
+    }
+  }
+  return null;
+}
+
+function findScrollableSurface(root, direction) {
+  if (isScrollable(root) && canScrollInDirection(root, direction)) {
+    return root;
+  }
+
+  const candidates = Array.from(root.querySelectorAll("*"))
+    .filter((element) => isScrollable(element))
+    .sort((a, b) => scrollCapacity(b) - scrollCapacity(a));
+
+  return candidates.find((element) => canScrollInDirection(element, direction)) || candidates[0] || null;
+}
+
+function scrollCapacity(element) {
+  return element.scrollHeight - element.clientHeight;
+}
+
 function isScrollable(element) {
   const style = getComputedStyle(element);
   const overflowY = style.overflowY;
@@ -269,5 +363,40 @@ function isVisible(element) {
 }
 
 function isActivePanel(element) {
+  if (element.closest?.("[data-open='false']")) {
+    return false;
+  }
+  if (element.dataset.open === "false") {
+    return false;
+  }
+  if (element.getAttribute("aria-hidden") === "true" || element.hidden) {
+    return false;
+  }
   return element.dataset.open === "true" || isVisible(element);
+}
+
+function isPotentialPanelElement(element) {
+  if (element.matches?.("button,a,svg,path,img")) {
+    return false;
+  }
+  if (isScrollable(element)) {
+    return true;
+  }
+  const rect = element.getBoundingClientRect();
+  return rect.height >= 180 && rect.width >= 220;
+}
+
+function hasCommentSignal(element, includeDescendants = false) {
+  const text = [
+    element.getAttribute("aria-label"),
+    element.getAttribute("data-e2e"),
+    typeof element.className === "string" ? element.className : "",
+    element.id
+  ].filter(Boolean).join(" ").toLowerCase();
+
+  if (text.includes("comment")) {
+    return true;
+  }
+
+  return includeDescendants && !!element.querySelector?.("[aria-label*='comment' i], [data-e2e*='comment' i]");
 }
