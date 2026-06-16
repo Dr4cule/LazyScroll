@@ -5,6 +5,7 @@ test("matches default social video URLs", () => {
   expect(isUrlAllowed("https://www.youtube.com/shorts/abc", DEFAULT_ALLOWED_SITES)).toBe(true);
   expect(isUrlAllowed("https://www.youtube.com/shorts/K4IQs5t1a2w", DEFAULT_ALLOWED_SITES)).toBe(true);
   expect(isUrlAllowed("https://m.youtube.com/shorts/K4IQs5t1a2w", DEFAULT_ALLOWED_SITES)).toBe(true);
+  expect(isUrlAllowed("https://www.instagram.com/reel/ABC123/", DEFAULT_ALLOWED_SITES)).toBe(true);
   expect(isUrlAllowed("https://www.instagram.com/reels/abc", DEFAULT_ALLOWED_SITES)).toBe(true);
   expect(isUrlAllowed("https://www.tiktok.com/@user/video/1", DEFAULT_ALLOWED_SITES)).toBe(true);
   expect(isUrlAllowed("https://example.com/watch", DEFAULT_ALLOWED_SITES)).toBe(false);

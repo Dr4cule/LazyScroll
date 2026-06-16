@@ -39,6 +39,15 @@ const COMMENT_PANEL_SELECTORS = [
   "div[aria-label*='comments' i]"
 ];
 
+const FEED_CONTAINER_SELECTORS = [
+  "[data-lazy-scroll-feed]",
+  "main",
+  "[role='main']",
+  "[aria-label*='reels' i]",
+  "[aria-label*='shorts' i]",
+  "[aria-label*='videos' i]"
+];
+
 export class SiteAdapter {
   constructor(doc = document) {
     this.document = doc;
@@ -89,6 +98,7 @@ export class SiteAdapter {
     const deltaY = direction * Math.max(650, Math.round(this.window.innerHeight * 0.9));
     const eventTargets = [
       this.document.activeElement,
+      this.findScrollableFeedContainer(direction),
       this.document.body,
       this.document.documentElement,
       this.document,
@@ -103,6 +113,7 @@ export class SiteAdapter {
 
     this.document.scrollingElement?.scrollBy({ top: deltaY, behavior: "smooth" });
     this.document.documentElement.scrollBy({ top: deltaY, behavior: "smooth" });
+    this.findScrollableFeedContainer(direction)?.scrollBy({ top: deltaY, behavior: "smooth" });
     return true;
   }
 
@@ -182,16 +193,37 @@ export class SiteAdapter {
 
   findNativeFeedControl(direction) {
     const labels = direction > 0
-      ? ["Next", "Next video", "Scroll down"]
-      : ["Previous", "Previous video", "Scroll up"];
+      ? ["Next", "Next reel", "Next video", "Next clip", "Scroll down"]
+      : ["Previous", "Previous reel", "Previous video", "Previous clip", "Scroll up"];
     const selectors = labels.flatMap((label) => [
       `button[aria-label="${label}"]`,
       `button[aria-label*="${label}" i]`,
       `button[title="${label}"]`,
       `button[title*="${label}" i]`,
-      `[role="button"][aria-label="${label}"]`
+      `[role="button"][aria-label="${label}"]`,
+      `[role="button"][aria-label*="${label}" i]`,
+      `[aria-label="${label}"]`,
+      `[aria-label*="${label}" i]`
     ]);
     return findFirstClickable(this.document, selectors);
+  }
+
+  findScrollableFeedContainer(direction) {
+    for (const selector of FEED_CONTAINER_SELECTORS) {
+      const candidates = Array.from(this.document.querySelectorAll(selector));
+      const container = candidates.find((element) => isScrollable(element) && canScrollInDirection(element, direction));
+      if (container) {
+        return container;
+      }
+    }
+
+    return Array.from(this.document.querySelectorAll("*")).find((element) => {
+      if (!isScrollable(element) || !canScrollInDirection(element, direction) || !isVisible(element)) {
+        return false;
+      }
+      const rect = element.getBoundingClientRect();
+      return rect.height >= this.window.innerHeight * 0.55 && rect.width >= this.window.innerWidth * 0.45;
+    }) || null;
   }
 }
 
@@ -219,6 +251,13 @@ function isScrollable(element) {
   const style = getComputedStyle(element);
   const overflowY = style.overflowY;
   return /(auto|scroll)/.test(overflowY) && element.scrollHeight > element.clientHeight + 8;
+}
+
+function canScrollInDirection(element, direction) {
+  if (direction > 0) {
+    return element.scrollTop + element.clientHeight < element.scrollHeight - 4;
+  }
+  return element.scrollTop > 4;
 }
 
 function isVisible(element) {

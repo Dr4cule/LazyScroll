@@ -4,6 +4,8 @@ export const DEFAULT_ALLOWED_SITES = Object.freeze([
   "https://www.youtube.com/shorts",
   "https://youtube.com/shorts",
   "https://m.youtube.com/shorts",
+  "https://www.instagram.com/reel",
+  "https://instagram.com/reel",
   "https://www.instagram.com/reels",
   "https://instagram.com/reels",
   "https://www.tiktok.com",

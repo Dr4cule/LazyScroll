@@ -237,8 +237,8 @@ export class GestureRecognizer {
       this.restSince = 0;
     }
 
-    const rested = this.restSince && timestamp - this.restSince >= 280;
-    const timedOut = timestamp - this.disarmedAt >= 1100;
+    const rested = this.restSince && timestamp - this.restSince >= 160;
+    const timedOut = timestamp - this.disarmedAt >= 850;
     if (rested || timedOut) {
       this.swipeDisarmed = false;
       this.lastSwipeDirection = 0;

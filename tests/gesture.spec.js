@@ -82,6 +82,19 @@ test("rearms swipes after the hand settles", () => {
   expect(recognizer.analyze(pointingHand(0.60), 2240)).toBe(GestureAction.SWIPE_DOWN);
 });
 
+test("rearms an opposite swipe after a short endpoint pause", () => {
+  const recognizer = new GestureRecognizer({ cooldownMs: 200 });
+
+  expect(recognizer.analyze(pointingHand(0.60), 1000)).toBeNull();
+  expect(recognizer.analyze(pointingHand(0.56), 1160)).toBeNull();
+  expect(recognizer.analyze(pointingHand(0.52), 1320)).toBe(GestureAction.SWIPE_UP);
+
+  expect(recognizer.analyze(pointingHand(0.52), 1500)).toBeNull();
+  expect(recognizer.analyze(pointingHand(0.52), 1680)).toBeNull();
+  expect(recognizer.analyze(pointingHand(0.56), 1860)).toBeNull();
+  expect(recognizer.analyze(pointingHand(0.60), 2020)).toBe(GestureAction.SWIPE_DOWN);
+});
+
 test("recognizes open palm and closing palm comment gestures", () => {
   const recognizer = new GestureRecognizer({ cooldownMs: 300, openHoldMs: 350, closeHoldMs: 150 });
 
