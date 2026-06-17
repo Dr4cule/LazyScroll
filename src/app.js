@@ -2,15 +2,18 @@ import { GestureRecognizer } from "./gesture-recognizer.js";
 import { MediaPipeHandProvider } from "./mediapipe-provider.js";
 import { LazyScrollOverlay } from "./overlay.js";
 import { SiteAdapter } from "./site-adapter.js";
+import { deriveRecognizerOptions, normalizeSettings } from "./settings.js";
 
-export async function mountLazyScroll({ runtimeUrl, provider } = {}) {
+export async function mountLazyScroll({ runtimeUrl, provider, settings } = {}) {
   if (window.__lazyScrollMounted) {
     return window.__lazyScrollApp;
   }
 
+  let currentSettings = normalizeSettings(settings);
+
   const overlay = new LazyScrollOverlay(document);
-  const recognizer = new GestureRecognizer();
-  const adapter = new SiteAdapter(document);
+  const recognizer = new GestureRecognizer(deriveRecognizerOptions(currentSettings));
+  const adapter = new SiteAdapter(document, { seekSeconds: currentSettings.seekSeconds });
   const handProvider = provider || new MediaPipeHandProvider({ runtimeUrl });
   let starting = false;
   let lastLandmarksAt = 0;
@@ -39,6 +42,21 @@ export async function mountLazyScroll({ runtimeUrl, provider } = {}) {
   const app = {
     adapter,
     recognizer,
+    get settings() {
+      return currentSettings;
+    },
+    applySettings: (next) => {
+      const previous = currentSettings;
+      currentSettings = normalizeSettings(next);
+      recognizer.configure(deriveRecognizerOptions(currentSettings));
+      adapter.configure({ seekSeconds: currentSettings.seekSeconds });
+      // Only react to a deliberate hint-preference change, so SPA navigation
+      // does not slam shut a guide the user opened with the ? button.
+      if (previous.showHints !== currentSettings.showHints) {
+        overlay.toggleGuide(currentSettings.showHints);
+      }
+      return currentSettings;
+    },
     start: async () => {
       if (starting || handProvider.running) {
         return;
@@ -117,6 +135,7 @@ export async function mountLazyScroll({ runtimeUrl, provider } = {}) {
   };
 
   overlay.setStatus("Ready. Click Start.", "idle");
+  overlay.toggleGuide(currentSettings.showHints);
   return app;
 }
 

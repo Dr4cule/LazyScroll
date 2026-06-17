@@ -11,6 +11,18 @@ export const GestureAction = Object.freeze({
 const FINGER_TIPS = [8, 12, 16, 20];
 const FINGER_PIPS = [6, 10, 14, 18];
 
+export const TUNABLE_OPTIONS = Object.freeze([
+  "swipeThreshold",
+  "swipeWindowMs",
+  "cooldownMs",
+  "openHoldMs",
+  "closeHoldMs",
+  "pinchThreshold",
+  "pinchWindowMs",
+  "twoFingerHoldMs",
+  "continuousScrollMs"
+]);
+
 export class GestureRecognizer {
   constructor(options = {}) {
     this.swipeThreshold = options.swipeThreshold ?? 0.065;
@@ -57,6 +69,16 @@ export class GestureRecognizer {
     this.pinkyEmitted = false;
     this.openEmitted = false;
     this.wasOpen = false;
+  }
+
+  configure(options = {}) {
+    for (const key of TUNABLE_OPTIONS) {
+      const value = options[key];
+      if (Number.isFinite(value)) {
+        this[key] = value;
+      }
+    }
+    return this;
   }
 
   analyze(landmarks, timestamp = performance.now()) {
@@ -364,18 +386,6 @@ export function getHandState(landmarks) {
     twoFingerUp,
     twoFingerDown
   };
-}
-
-function getPalmCenter(landmarks) {
-  const palmLandmarks = [0, 5, 9, 13, 17].map((index) => landmarks[index]);
-  return {
-    x: average(palmLandmarks, "x"),
-    y: average(palmLandmarks, "y")
-  };
-}
-
-function average(points, key) {
-  return points.reduce((sum, point) => sum + point[key], 0) / points.length;
 }
 
 function distance2d(a, b) {

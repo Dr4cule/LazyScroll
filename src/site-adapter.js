@@ -82,10 +82,18 @@ const FEED_CONTAINER_SELECTORS = [
 ];
 
 export class SiteAdapter {
-  constructor(doc = document) {
+  constructor(doc = document, options = {}) {
     this.document = doc;
     this.window = doc.defaultView || window;
     this.host = this.window.location.hostname;
+    this.seekSeconds = Number.isFinite(options.seekSeconds) ? options.seekSeconds : 5;
+  }
+
+  configure(options = {}) {
+    if (Number.isFinite(options.seekSeconds)) {
+      this.seekSeconds = Math.min(30, Math.max(1, options.seekSeconds));
+    }
+    return this;
   }
 
   handle(action) {
@@ -105,10 +113,10 @@ export class SiteAdapter {
       return this.scrollCommentsOrFeed(-1);
     }
     if (action === GestureAction.SEEK_FORWARD) {
-      return this.seekVideo(5);
+      return this.seekVideo(this.seekSeconds);
     }
     if (action === GestureAction.SEEK_BACKWARD) {
-      return this.seekVideo(-5);
+      return this.seekVideo(-this.seekSeconds);
     }
     return false;
   }

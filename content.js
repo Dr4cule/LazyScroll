@@ -6,15 +6,23 @@
 
   try {
     const configModuleUrl = runtimeUrl("src/site-config.js");
+    const settingsModuleUrl = runtimeUrl("src/settings.js");
     const { isUrlAllowed, loadAllowedSites } = await import(configModuleUrl);
+    const { loadSettings } = await import(settingsModuleUrl);
 
     const syncMountState = async () => {
-      const allowedSites = await loadAllowedSites(chrome.storage.local);
-      const shouldRun = isUrlAllowed(window.location.href, allowedSites);
+      const [allowedSites, settings] = await Promise.all([
+        loadAllowedSites(chrome.storage.local),
+        loadSettings(chrome.storage.local)
+      ]);
+      const shouldRun =
+        settings.enabled && isUrlAllowed(window.location.href, allowedSites);
 
       if (shouldRun && !app) {
         const { mountLazyScroll } = await import(runtimeUrl("src/app.js"));
-        app = await mountLazyScroll({ runtimeUrl });
+        app = await mountLazyScroll({ runtimeUrl, settings });
+      } else if (shouldRun && app) {
+        app.applySettings(settings);
       }
 
       if (!shouldRun && app) {
@@ -69,7 +77,7 @@
     installRouteWatcher();
 
     chrome.storage.onChanged.addListener((changes, areaName) => {
-      if (areaName === "local" && changes.lazyScrollAllowedSites) {
+      if (areaName === "local" && (changes.lazyScrollAllowedSites || changes.lazyScrollSettings)) {
         queueSyncMountState();
       }
     });

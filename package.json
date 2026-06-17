@@ -5,8 +5,8 @@
   "main": "content.js",
   "scripts": {
     "test": "playwright test",
-    "test:unit": "playwright test tests/gesture.spec.js",
-    "test:e2e": "playwright test tests/e2e.spec.js",
+    "test:unit": "playwright test tests/gesture.spec.js tests/settings.spec.js tests/site-config.spec.js",
+    "test:e2e": "playwright test tests/e2e.spec.js tests/overlay.spec.js tests/mediapipe-startup.spec.js",
     "test:extension": "playwright test tests/extension-*.spec.js",
     "audit": "npm audit"
   },

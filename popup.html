@@ -8,18 +8,65 @@
   <body>
     <main>
       <header>
-        <h1>Lazy Scroll</h1>
-        <p>Choose the pages where hand gestures should run.</p>
+        <div class="brand">
+          <img src="icons/icon-48.png" width="28" height="28" alt="">
+          <div>
+            <h1>Lazy Scroll</h1>
+            <p>Hands-free control for vertical video feeds.</p>
+          </div>
+        </div>
+        <label class="switch" title="Turn gestures on or off everywhere">
+          <input id="enabled" type="checkbox">
+          <span class="slider" aria-hidden="true"></span>
+        </label>
       </header>
 
-      <label for="sites">Allowed site URLs</label>
-      <textarea id="sites" spellcheck="false" rows="8"></textarea>
+      <section class="card">
+        <h2>Tracking</h2>
 
-      <div class="actions">
-        <button id="add-current" type="button">Add current page</button>
-        <button id="save" type="button">Save</button>
-        <button id="reset" type="button">Reset</button>
-      </div>
+        <div class="field">
+          <label for="sensitivity">Gesture sensitivity</label>
+          <select id="sensitivity">
+            <option value="low">Low — fewer accidental triggers</option>
+            <option value="medium">Medium — balanced</option>
+            <option value="high">High — quick and responsive</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="seek">Seek step: <output id="seek-value">5s</output></label>
+          <input id="seek" type="range" min="1" max="30" step="1" value="5">
+        </div>
+
+        <label class="check">
+          <input id="show-hints" type="checkbox">
+          <span>Auto-open the gesture guide on the page</span>
+        </label>
+      </section>
+
+      <section class="card">
+        <h2>Allowed pages</h2>
+        <p class="hint">Gestures only run on these URLs. Use prefixes, domains, or <code>*</code> wildcards.</p>
+        <textarea id="sites" spellcheck="false" rows="7"></textarea>
+        <div class="actions">
+          <button id="add-current" type="button">Add current page</button>
+          <button id="save" type="button">Save</button>
+          <button id="reset" type="button">Reset</button>
+        </div>
+      </section>
+
+      <details class="guide">
+        <summary>Gesture cheat sheet</summary>
+        <ul>
+          <li><b>☝️ Point + swipe up</b><span>Next reel</span></li>
+          <li><b>👇 Point + swipe down</b><span>Previous reel</span></li>
+          <li><b>✌️ Hold two fingers</b><span>Keep scrolling</span></li>
+          <li><b>🖐️ Open palm</b><span>Open comments</span></li>
+          <li><b>✊ Make a fist</b><span>Close comments</span></li>
+          <li><b>🤙 Hold pinky up</b><span>Like / unlike</span></li>
+          <li><b>🤏 Pinch + slide</b><span>Seek video</span></li>
+        </ul>
+      </details>
 
       <p id="status" role="status"></p>
     </main>

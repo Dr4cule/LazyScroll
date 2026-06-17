@@ -10,7 +10,7 @@
 
 <p align="center">
   <img alt="Chrome MV3" src="https://img.shields.io/badge/Chrome-MV3-2563eb">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-19%20passing-16a34a">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-25%20passing-16a34a">
   <img alt="License" src="https://img.shields.io/badge/license-ISC-475569">
 </p>
 
@@ -23,8 +23,10 @@ Lazy Scroll is a Chrome Manifest V3 extension that turns webcam hand gestures in
 - Uses local MediaPipe Tasks Vision assets from `vendor/`; no CDN is required at runtime.
 - Lets you stop camera tracking from the overlay at any time.
 - Routes swipes into comments when comments are open, instead of accidentally moving the main reel.
-- Includes a popup allow-list with one-click Add current page support.
-- Ships with Playwright coverage for gestures, local integration behavior, packaged extension startup, and MediaPipe loading.
+- Draggable on-page overlay with a built-in gesture cheat sheet (the `?` button), a position that persists, and a live "watching" pulse.
+- Adjustable gesture sensitivity (Low / Medium / High), a configurable seek step, and a master on/off switch in the popup.
+- Popup allow-list with one-click Add current page support.
+- Ships with Playwright coverage for gestures, settings, overlay behavior, local integration, packaged extension startup, and MediaPipe loading.
 
 ## Gesture Map
 
@@ -47,7 +49,7 @@ When a comments panel is open, swipe gestures scroll the comments surface first.
 - The extension requests camera access only after you click Start in the overlay.
 - The overlay now has a Stop button so you can immediately stop the camera stream.
 - Hand landmarks travel from the tracker frame to the content script over a private `MessageChannel`, not public window messages.
-- The extension stores only your allowed site URL list in `chrome.storage.local`.
+- The extension stores only your allowed site URL list and gesture settings in `chrome.storage.local`, plus the overlay's last position in the page's `localStorage`.
 - The manifest uses `storage` and `activeTab`; `activeTab` powers Add current page in the popup.
 - The content script is injected broadly so custom sites can be supported, but the app mounts only when the current URL matches your allow-list.
 
@@ -76,9 +78,20 @@ https://www.tiktok.com
 
 The same unpacked extension flow works in Microsoft Edge and other Chromium browsers. Firefox is not supported by this MV3 build.
 
-## Configure Sites
+## Settings
 
-Open the extension popup from the browser toolbar. You can:
+Open the extension popup from the browser toolbar. The popup has two parts.
+
+**Tracking**
+
+- Master on/off switch (top right) to enable or pause gestures everywhere without editing the allow-list.
+- Gesture sensitivity: Low (fewer accidental triggers), Medium (balanced default), or High (quick and responsive). This tunes swipe/pinch thresholds and cooldowns.
+- Seek step: how many seconds a pinch-slide jumps the video (1–30s, default 5).
+- Auto-open the gesture guide so the on-page cheat sheet is expanded by default.
+
+Setting changes apply to open allowed tabs immediately — no reload needed.
+
+**Allowed pages**
 
 - click Add current page to add a smart URL prefix for the active tab
 - edit allowed URLs manually
@@ -106,7 +119,7 @@ npm test
 Expected result:
 
 ```text
-19 passed
+25 passed
 ```
 
 Useful focused commands:
@@ -123,19 +136,20 @@ The tests start a local server on `http://127.0.0.1:4173` and exercise the exten
 ## Project Layout
 
 ```text
-background.js                 Default allow-list setup and migrations
-content.js                    URL gate, route watcher, app mount/unmount
-popup.html/css/js             Toolbar popup and site allow-list editor
+background.js                 Default allow-list and settings setup plus migrations
+content.js                    URL + enabled gate, route watcher, app mount/unmount, live settings sync
+popup.html/css/js             Toolbar popup: settings panel and site allow-list editor
 manifest.json                 Chrome MV3 extension manifest
 src/app.js                    Overlay, recognizer, provider, and adapter coordinator
-src/gesture-recognizer.js     Landmark-to-action gesture recognition
+src/gesture-recognizer.js     Landmark-to-action gesture recognition (tunable thresholds)
 src/mediapipe-provider.js     Tracker frame/popup lifecycle and private message channel
 src/hand-frame.js             Camera startup and MediaPipe hand tracking
-src/site-adapter.js           YouTube/Instagram/TikTok/page action adapter
-src/site-config.js            Defaults, allow-list matching, current-page suggestions
-src/overlay.js                On-page Start/Stop/status widget
+src/site-adapter.js           YouTube/Instagram/TikTok/page action adapter (configurable seek)
+src/site-config.js            Allow-list defaults, matching, and current-page suggestions
+src/settings.js               User settings defaults, sensitivity presets, load/save
+src/overlay.js                Draggable Start/Stop/status widget with gesture guide
 test-pages/                   Local vertical feed and extension test pages
-tests/                        Playwright unit, integration, and extension tests
+tests/                        Playwright unit, settings, overlay, integration, and extension tests
 vendor/                       Bundled MediaPipe runtime, wasm, and hand model
 icons/                        Extension icons used by Chrome and this README
 ```
@@ -144,15 +158,17 @@ icons/                        Extension icons used by Chrome and this README
 
 After loading the extension:
 
-1. Confirm the overlay appears only on allowed URLs.
-2. Click Start and wait for Watching gestures.
-3. Swipe up for next and down for previous.
-4. Hold pinky up and confirm Like or Unlike toggles.
-5. Hold open palm and confirm comments open.
-6. Swipe while comments are open and confirm only comments move.
-7. Close your palm into a fist and confirm comments close.
-8. Pinch-slide left and right to seek.
-9. Click Stop and confirm the overlay returns to Start.
+1. Confirm the overlay appears only on allowed URLs, and not when the master switch is off.
+2. Click the `?` button and confirm the gesture guide opens; drag the bar and confirm it stays where you drop it after a reload.
+3. Click Start and wait for Watching gestures (the status dot pulses green).
+4. Swipe up for next and down for previous.
+5. Hold pinky up and confirm Like or Unlike toggles.
+6. Hold open palm and confirm comments open.
+7. Swipe while comments are open and confirm only comments move.
+8. Close your palm into a fist and confirm comments close.
+9. Pinch-slide left and right to seek by your configured seek step.
+10. Change sensitivity or the seek step in the popup and confirm the open tab reacts without a reload.
+11. Click Stop and confirm the overlay returns to Start.
 
 ## Troubleshooting
 

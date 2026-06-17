@@ -1,39 +1,48 @@
-chrome.runtime.onInstalled.addListener(() => {
-  chrome.storage.local.get("lazyScrollAllowedSites", (result) => {
-    const defaultSites = [
-      "https://www.youtube.com/shorts",
-      "https://youtube.com/shorts",
-      "https://m.youtube.com/shorts",
-      "https://www.instagram.com/reel",
-      "https://instagram.com/reel",
-      "https://www.instagram.com/reels",
-      "https://instagram.com/reels",
-      "https://www.tiktok.com",
-      "https://tiktok.com"
-    ];
+import {
+  ALLOWED_SITES_KEY,
+  DEFAULT_ALLOWED_SITES,
+  normalizeSites
+} from "./src/site-config.js";
+import { SETTINGS_KEY, normalizeSettings } from "./src/settings.js";
 
-    if (!Array.isArray(result.lazyScrollAllowedSites)) {
-      chrome.storage.local.set({
-        lazyScrollAllowedSites: defaultSites
-      });
+chrome.runtime.onInstalled.addListener(() => {
+  seedAllowedSites();
+  seedSettings();
+});
+
+function seedAllowedSites() {
+  chrome.storage.local.get(ALLOWED_SITES_KEY, (result) => {
+    const saved = result?.[ALLOWED_SITES_KEY];
+
+    if (!Array.isArray(saved)) {
+      chrome.storage.local.set({ [ALLOWED_SITES_KEY]: [...DEFAULT_ALLOWED_SITES] });
       return;
     }
 
-    const hasOldInstagramDefaults =
-      result.lazyScrollAllowedSites.includes("https://www.instagram.com/reels") ||
-      result.lazyScrollAllowedSites.includes("https://instagram.com/reels");
-    const hasSingularInstagramReel =
-      result.lazyScrollAllowedSites.includes("https://www.instagram.com/reel") ||
-      result.lazyScrollAllowedSites.includes("https://instagram.com/reel");
+    // Migrate older installs that predate the singular /reel default.
+    const hasReelsDefault =
+      saved.includes("https://www.instagram.com/reels") ||
+      saved.includes("https://instagram.com/reels");
+    const hasReelDefault =
+      saved.includes("https://www.instagram.com/reel") ||
+      saved.includes("https://instagram.com/reel");
 
-    if (hasOldInstagramDefaults && !hasSingularInstagramReel) {
+    if (hasReelsDefault && !hasReelDefault) {
       chrome.storage.local.set({
-        lazyScrollAllowedSites: Array.from(new Set([
-          ...result.lazyScrollAllowedSites,
+        [ALLOWED_SITES_KEY]: normalizeSites([
+          ...saved,
           "https://www.instagram.com/reel",
           "https://instagram.com/reel"
-        ]))
+        ])
       });
     }
   });
-});
+}
+
+function seedSettings() {
+  chrome.storage.local.get(SETTINGS_KEY, (result) => {
+    chrome.storage.local.set({
+      [SETTINGS_KEY]: normalizeSettings(result?.[SETTINGS_KEY])
+    });
+  });
+}
