@@ -178,7 +178,6 @@ After loading the extension:
 - If hand detection is unreliable, improve lighting and keep one hand centered in the webcam frame.
 - If a site changes its DOM, update selectors in `src/site-adapter.js` and add a local regression test.
 
-lazy commit 4 2 day ;-;
 
 ## License
 
