@@ -16,6 +16,7 @@
 
 <p align="center">
   <img src="src/image.png" alt="Lazy Scroll gesture guide overlay" width="512">
+  <img src="src/image2.png" alt="Lazy Scroll overlay in a video feed" width="512">
 </p>
 
 Lazy Scroll is a Chrome Manifest V3 extension that turns webcam hand gestures into feed actions. It runs the bundled MediaPipe hand model locally, shows a small on-page control, and only activates on URLs in your allow-list.
